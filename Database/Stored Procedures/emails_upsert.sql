@@ -3,7 +3,8 @@ CREATE OR REPLACE PROCEDURE emails_upsert(
     isSpam BOOLEAN,
     senderAddress VARCHAR(150),
     senderName VARCHAR(150),
-    subject_ VARCHAR(150),
+    subject_ VARCHAR(250),
+    source_ VARCHAR(20),
     OUT upsert_email_id INTEGER
 )
 AS $$
@@ -15,7 +16,8 @@ BEGIN
 	        sender_address = senderAddress,
 	        sender_name = senderName,
 	        subject = subject_,
-			update_datetime_utc = (NOW() AT TIME ZONE 'UTC')
+			update_datetime_utc = (NOW() AT TIME ZONE 'UTC'),
+			source = source_
 		WHERE email_id = emailId
 		RETURNING id INTO upsert_email_id;
 	ELSE
@@ -26,7 +28,8 @@ BEGIN
 	        sender_address,
 	        sender_name,
 	        subject,
-			create_datetime_utc
+			create_datetime_utc,
+			source
 	    )
 	    VALUES
 	    (
@@ -35,7 +38,8 @@ BEGIN
 	        senderAddress,
 	        senderName,
 	        subject_,
-			NOW() AT TIME ZONE 'UTC'
+			NOW() AT TIME ZONE 'UTC',
+			source_
 	    )
     	RETURNING id INTO upsert_email_id;
 	END IF;
