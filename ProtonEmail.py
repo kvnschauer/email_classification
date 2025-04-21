@@ -29,7 +29,7 @@ class ProtonEmail:
         Gets the classification of this email as either spam, not spam or notset 
     '''
     def get_classification(self):
-        classification = EmailClassification.Unknown
+        classification = EmailClassification.UNKNOWN
         if not self.label_ids.__contains__(self.__get_sent_label_id()):
             if self.label_ids.__contains__(self.__get_spam_label_id()):
                 classification = EmailClassification.SPAM
@@ -39,14 +39,18 @@ class ProtonEmail:
 
         return classification
 
+    @staticmethod
     def __get_spam_label_id(self) -> str:
         return 'qdbSPKYNNaPjSnyK64SYLOXRdwh9dJw9w912z4XV9mFvKSFqdy7Yt3_JYu4GgeLEcNLbNhH4XZzw-N6QZtbikg=='
 
+    @staticmethod
     def __get_not_spam_label_id(self) -> str:
         return 'JPbYQkCIbN3IOjoHlGGvMoOiojOoOBsvbpM2NyXpt8KJlzwId64o72Sy0nHD7MzYEGMV9PZKz2Z4vXF9COCBFQ=='
 
+    @staticmethod
     def __get_inbox_label_id(self) -> str:
         return '0'
 
-    def __get_sent_label_id(self) -> str:
+    @staticmethod
+    def __get_sent_label_id() -> str:
         return '7'

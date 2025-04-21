@@ -2,23 +2,23 @@ import psycopg2
 from psycopg2 import Error
 class PostgresDbConnector:
 
-    __HOST = 'localhost'
-    __DATABASE = 'localDB'
-    __USER = 'email_classifier'
-    __PASSWORD = ''
-    __PORT = '5432'
+    __host = 'localhost'
+    __database = 'localDB'
+    __user = 'email_classifier'
+    __password = ''
+    __port = '5432'
     __upsert_sproc_name = 'public.emails_upsert'
 
     def __init__(self, config):
-        self.__PASSWORD = config['local_postgres_secret']
+        self.__password = config['localPostresPassword']
 
     def __connect(self):
         try:
-            connection = psycopg2.connect(database=self.__DATABASE,
-                                    user=self.__USER,
-                                    password=self.__PASSWORD,
-                                    host=self.__HOST,
-                                    port=self.__PORT)
+            connection = psycopg2.connect(database=self.__database,
+                                    user=self.__user,
+                                    password=self.__password,
+                                    host=self.__host,
+                                    port=self.__host)
             return connection
         except Error as e:
             print(f'Error connecting to DB:  {e}')
