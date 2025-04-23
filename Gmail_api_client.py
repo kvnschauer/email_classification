@@ -14,7 +14,7 @@ class Gmail_api_client:
     __creds = None
     __not_spam_label_id = 'Label_7181974657700970591'
     __spam_label_id = 'Label_2209700380525172462'
-    __inbox_label_id = 'INBOX'
+    __personal_label_id = 'CATEGORY_PERSONAL'
     __message_ids = {EmailClassification.SPAM:[], EmailClassification.NOT_SPAM: [], EmailClassification.UNKNOWN: []}
 
     def __init__(self):
@@ -36,32 +36,47 @@ class Gmail_api_client:
             with open("token.json", "w") as token:
                 token.write(self.creds.to_json())
 
-    def list_emails(self, label_ids, message_ids):
-        service = build('gmail', 'v1', credentials=self.creds)
-        next_page_token = None
+    def list_emails(self, label_ids, message_ids, query=None, next_page_token=None, initial_call=False):
+        """
+            Recursive method to handle reading email ids for further processing
 
-        results = service.users().messages().list(userId='me', includeSpamTrash=False, labelIds=label_ids, maxResults=5).execute()
+                Parameters:
+                    label_ids (list): gmail labels to target.
+                    message_ids (list): list of message ids to append results to.
+                    query (str):  custom query per gmail spec.
+                    next_page_token (str): page token for fetching further results.
+                    initial_call (bool): is this the first non-recursive call?
+                Returns:
+                      None
+        """
+        if not initial_call and next_page_token is None:
+            return
+
+        service = build('gmail', 'v1', credentials=self.creds)
+        results = service.users().messages().list(userId='me',
+                                                  includeSpamTrash=False,
+                                                  labelIds=label_ids,
+                                                  maxResults=50,
+                                                  pageToken=next_page_token,
+                                                  q=query).execute()
+
         for message in results['messages']:
             message_ids.append(message['id'])
         if 'nextPageToken' in results:
-            next_page_token = results['nextPageToken']
+            return self.list_emails(label_ids, message_ids, query, results['nextPageToken'])
+        else:
+            return self.list_emails(label_ids, message_ids, query)
 
-            while next_page_token is not None:
-                results = service.users().messages().list(userId='me', includeSpamTrash=False,
-                                                          labelIds=label_ids, maxResults=100, pageToken=next_page_token).execute()
-                for message in results['messages']:
-                    message_ids.append(message['id'])
 
-                if 'nextPageToken' in results:
-                    next_page_token = results['nextPageToken']
-                else:
-                    next_page_token = None
 
     def get_emails(self):
         # get list of email ids
-        self.list_emails([self.__spam_label_id], self.__message_ids[EmailClassification.SPAM])
-        self.list_emails([self.__not_spam_label_id], self.__message_ids[EmailClassification.NOT_SPAM])
-        self.list_emails([self.__inbox_label_id], self.__message_ids[EmailClassification.UNKNOWN])
+        self.list_emails([self.__spam_label_id], self.__message_ids[EmailClassification.SPAM], initial_call=True)
+        self.list_emails([self.__not_spam_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True)
+        self.list_emails([self.__personal_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True, query='-is:unread')
+
+        print(f'Total spam emails: {len(self.__message_ids[EmailClassification.SPAM])}')
+        print(f'Total non spam emails: {len(self.__message_ids[EmailClassification.NOT_SPAM])}')
 
         # read email metadata
         # map and return

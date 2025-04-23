@@ -45,6 +45,6 @@ def load_proton_email():
                 print(f'Error processing file {file}. Error: {e}')
 def load_gmail_emails():
     client = Gmail_api_client()
-    client.list_emails()
+    client.get_emails()
 #load_proton_email()
 load_gmail_emails()
