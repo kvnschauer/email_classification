@@ -1,15 +1,11 @@
-from EmailClassification import EmailClassification
+from email_base import EmailBase
+from email_classification import EmailClassification
 from typing import List
 '''
     Class to manage proton emails
 '''
-class ProtonEmail:
-    email_id: str
-    sender_name: str
-    sender_address: str
+class ProtonEmail(EmailBase):
     label_ids: List[str]
-    subject: str
-    unread: bool
 
     ''' 
         Take in a dictionary from deserializing json and assigns data to the class

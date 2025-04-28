@@ -1,11 +1,11 @@
 import json
 
-from Gmail_api_client import Gmail_api_client
-from PostgresDbConnector import PostgresDbConnector
+from gmail_api_client import Gmail_api_client
+from postgres_db_connector import PostgresDbConnector
 from os import listdir
 from typing import List
-from ProtonEmail import ProtonEmail
-from EmailClassification import EmailClassification
+from proton_email import ProtonEmail
+from email_classification import EmailClassification
 
 '''
     Script to load email data into postgre SQL locally

@@ -10,7 +10,7 @@ class PostgresDbConnector:
     __upsert_sproc_name = 'public.emails_upsert'
 
     def __init__(self, config):
-        self.__password = config['localPostresPassword']
+        self.__password = config['localPostgresPassword']
 
     def __connect(self):
         try:

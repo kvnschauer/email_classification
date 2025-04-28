@@ -6,7 +6,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from EmailClassification import EmailClassification
+from email_classification import EmailClassification
 
 
 class Gmail_api_client:
@@ -38,16 +38,16 @@ class Gmail_api_client:
 
     def list_emails(self, label_ids, message_ids, query=None, next_page_token=None, initial_call=False):
         """
-            Recursive method to handle reading email ids for further processing
+            Recursive function to handle reading email ids for further processing
 
-                Parameters:
-                    label_ids (list): gmail labels to target.
-                    message_ids (list): list of message ids to append results to.
-                    query (str):  custom query per gmail spec.
-                    next_page_token (str): page token for fetching further results.
-                    initial_call (bool): is this the first non-recursive call?
-                Returns:
-                      None
+            Parameters:
+                label_ids (list): gmail labels to target.
+                message_ids (list): list of message ids to append results to.
+                query (str):  custom query per gmail spec.
+                next_page_token (str): page token for fetching further results.
+                initial_call (bool): is this the first non-recursive call?
+            Returns:
+                  None
         """
         if not initial_call and next_page_token is None:
             return
@@ -67,9 +67,20 @@ class Gmail_api_client:
         else:
             return self.list_emails(label_ids, message_ids, query)
 
+    def get_email_metadata(self, message_id):
+        """
+            Parameters:
+                message_id - message id that uniquely identifies gmail email
+
+            Returns: Email metadata as an class
+        """
 
 
     def get_emails(self):
+        """
+            Function to get gmail email data
+            :return:
+        """
         # get list of email ids
         self.list_emails([self.__spam_label_id], self.__message_ids[EmailClassification.SPAM], initial_call=True)
         self.list_emails([self.__not_spam_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True)
@@ -79,4 +90,8 @@ class Gmail_api_client:
         print(f'Total non spam emails: {len(self.__message_ids[EmailClassification.NOT_SPAM])}')
 
         # read email metadata
+        for key in self.__message_ids.keys():
+            for message_id in self.__message_ids[key]:
+                x = self.get_email_metadata(message_id)
+
         # map and return
