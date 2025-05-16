@@ -21,24 +21,25 @@ class Gmail_api_client:
     __personal_label_id = 'CATEGORY_PERSONAL'
     __message_ids = {EmailClassification.SPAM:[], EmailClassification.NOT_SPAM: [], EmailClassification.UNKNOWN: []}
     __service: Resource
+    __token_file_path = 'C:\\repos\\email_classification\\token.json'
 
     def __init__(self):
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists("token.json"):
-            self.creds = Credentials.from_authorized_user_file("token.json", self.__scopes)
+        if os.path.exists(self.__token_file_path):
+            self.creds = Credentials.from_authorized_user_file(self.__token_file_path, self.__scopes)
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                  "credentials.json", self.__scopes
+                    "C:\\repos\\email_classification\\credentials.json", self.__scopes
                 )
                 self.creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open("token.json", "w") as token:
+            with open(self.__token_file_path, "w") as token:
                 token.write(self.creds.to_json())
 
         self.__service = build('gmail', 'v1', credentials=self.creds)
@@ -75,6 +76,8 @@ class Gmail_api_client:
 
     def __get_email_metadata(self, message_id):
         """
+            Get the email metadata from a gmail message ID
+
             Parameters:
                 message_id - message id that uniquely identifies gmail email
 
@@ -96,16 +99,18 @@ class Gmail_api_client:
         emails: List[email_base] = []
 
         # get list of email ids
-        print('fetching spam gmail emails...')
+        print('Fetching spam gmail email ids...')
         self.list_emails([self.__spam_label_id], self.__message_ids[EmailClassification.SPAM], initial_call=True)
-        print('fetching non spam gmail emails...')
+        print('Fetching non spam gmail email ids...')
         self.list_emails([self.__not_spam_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True)
-        print('fetching unread gmail emails...')
+        print('Fetching unread gmail email ids...')
         self.list_emails([self.__personal_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True, query='-is:unread')
 
         # read email metadata and map
         for key in self.__message_ids.keys():
-            for message_id in self.__message_ids[key]:
+            print(f'Fetching metadata for {key} email classification')
+            for i, message_id in enumerate(self.__message_ids[key]):
+                print(f"Fetching email metadata {i} / {len(self.__message_ids[key])}")
                 new_email = EmailBase()
                 new_email.email_id = message_id
                 new_email.email_source = 'Gmail'
@@ -121,6 +126,8 @@ class Gmail_api_client:
 
     @staticmethod
     def __process_metadata(metadata, new_email):
+        new_email.size_bytes = metadata['sizeEstimate']
+
         for header in metadata['payload']['headers']:
             if header['name'] == 'Subject':
                 new_email.subject = header['value']

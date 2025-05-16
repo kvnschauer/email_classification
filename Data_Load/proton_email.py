@@ -19,6 +19,7 @@ class ProtonEmail(EmailBase):
             self.sender_name = deserialized_email['Payload']['Sender']['Name']
             self.label_ids = deserialized_email['Payload']['LabelIDs']
             self.unread = True if deserialized_email['Payload']['Unread'] == '0' else False
+            self.size_bytes = deserialized_email['Payload']['Size']
         except:
             print(f'Problem loading file {file_name}')
 

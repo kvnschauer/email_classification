@@ -7,6 +7,7 @@ CREATE TABLE public.emails (
 	subject varchar(250) NULL,
 	create_datetime_utc TIMESTAMPTZ NOT NULL,
 	update_datetime_utc TIMESTAMPTZ NULL,
-	source VARCHAR(20) NULL
+	source VARCHAR(20) NULL,
+	size_bytes int4 NULL
 	CONSTRAINT emails_pkey PRIMARY KEY (id)
 );

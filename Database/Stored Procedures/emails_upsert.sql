@@ -1,10 +1,11 @@
-CREATE OR REPLACE PROCEDURE emails_upsert(
+CREATE OR REPLACE PROCEDURE email_upsert(
     emailId VARCHAR(150),
     isSpam BOOLEAN,
     senderAddress VARCHAR(150),
     senderName VARCHAR(150),
     subject_ VARCHAR(250),
     source_ VARCHAR(20),
+    sizeBytes int4
     OUT upsert_email_id INTEGER
 )
 AS $$
@@ -18,6 +19,7 @@ BEGIN
 	        subject = subject_,
 			update_datetime_utc = (NOW() AT TIME ZONE 'UTC'),
 			source = source_
+			size_bytes = sizeBytes
 		WHERE email_id = emailId
 		RETURNING id INTO upsert_email_id;
 	ELSE
@@ -29,7 +31,8 @@ BEGIN
 	        sender_name,
 	        subject,
 			create_datetime_utc,
-			source
+			source,
+			size_bytes
 	    )
 	    VALUES
 	    (
@@ -39,7 +42,8 @@ BEGIN
 	        senderName,
 	        subject_,
 			NOW() AT TIME ZONE 'UTC',
-			source_
+			source_,
+			sizeBytes
 	    )
     	RETURNING id INTO upsert_email_id;
 	END IF;

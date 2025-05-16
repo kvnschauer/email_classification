@@ -8,3 +8,7 @@ class EmailBase:
     subject: str
     classification: EmailClassification
     email_source: str
+    size_bytes: int
+
+    def __getattr__(self, item):
+        return None
