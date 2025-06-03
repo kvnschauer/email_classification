@@ -1,9 +1,10 @@
 from Data_Load.data_load import load_data_all
-from analyze_data import analyze_data_all
+from data_analyzer import Data_analyzer
 
+analyzer = Data_analyzer()
 function_to_execute = 0
 user_input = ''
-available_functions = { 1: load_data_all, 2: analyze_data_all}
+available_functions = { 1: load_data_all, 2: analyzer.analyze_data_all}
 
 while function_to_execute not in available_functions:
     user_input = input('Choose an option: \n'

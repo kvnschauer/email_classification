@@ -25,7 +25,7 @@ db_connector: PostgresDbConnector = PostgresDbConnector(config)
 
 
 def load_proton_email():
-    proton_emails_path = 'C:\\Users\\Kevin\\Documents\\Email backups\\Proton\\kvnschauer@protonmail.com\\mail_20250514_220508'
+    proton_emails_path = 'C:\\Users\\Kevin\\Documents\\Email backups\\Proton\\kvnschauer@protonmail.com\\mail_20250601_183524'
 
     proton_emails_metadata_files = \
     [

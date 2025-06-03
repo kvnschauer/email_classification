@@ -22,7 +22,7 @@ AS $$
         sender_name,
         subject,
         create_datetime_utc,
-        'source' AS source,
+        source AS source,
         size_bytes
     FROM emails e
     WHERE idSearchAfter IS NULL OR e.id > idSearchAfter

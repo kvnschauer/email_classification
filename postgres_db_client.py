@@ -70,8 +70,10 @@ class PostgresDbConnector:
         cursor = connection.cursor()
 
         try:
-            results = cursor.execute(f'SELECT * FROM {self.__read_emails_bulk_function}(%s)', (id_search_after))
-            dataset = pd.DataFrame(cursor.fetchall(), columns=['id', 'email_id', 'is_spam', 'sender_address', 'sender_name', 'subject', 'create_datetime_utc'])
+            cursor.execute(f'SELECT * FROM {self.__read_emails_bulk_function} (%s)', (id_search_after,))
+            dataset = pd.DataFrame(cursor.fetchall(), columns=['id', 'email_id', 'is_spam', 'sender_address', 'sender_name', 'subject', 'create_datetime_utc', 'source','size_bytes'])
+
+            return dataset
         except Exception as e:
             print(f"Error getting emails: {e}")
             raise
