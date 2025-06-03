@@ -2,10 +2,9 @@ import os
 import json
 import datetime
 import pandas
-
 import matplotlib.pyplot as plt
-from pandas import DataFrame
 
+from pandas import DataFrame
 from postgres_db_client import PostgresDbConnector
 
 class Data_analyzer:
@@ -33,21 +32,16 @@ class Data_analyzer:
                                     date_time_now.hour,
                                     date_time_now.minute,
                                     date_time_now.second)
-        # new_folder_path = self.__analysis_backup_path + '\\' + folder_name
-        # os.mkdir(new_folder_path)
-        #
-        # stats = (f'Dataset total: {len(data)}\n\n'
-        #          f'Columns: {data.columns}\n\n'
-        #          f'Percent non spam: {round(len(data.loc[data.is_spam == False]) / len(data), 3) * 100}\n\n'
-        #          f'Email source info:\n {data.source.value_counts()}\n\n')
-        #
-        # print(stats)
+        new_folder_path = self.__analysis_backup_path + '\\' + folder_name
+        #os.mkdir(new_folder_path)
+
+        stats = (f'Dataset total: {len(data)}\n\n'
+                 f'Columns: {data.columns}\n\n'
+                 f'Percent non spam: {round(len(data.loc[data.is_spam == False]) / len(data), 3) * 100}\n\n'
+                 f'Email source info:\n {data.source.value_counts()}\n\n'
+                 f'Email size stats non spam (kilobyte):\n {(data.loc[data.is_spam == False].size_bytes / 1000).describe()}\n\n'
+                 f'Email size stats spam (kilobyte):\n {(data.loc[data.is_spam == True].size_bytes / 1000).describe()}\n\n')
+
+        print(stats)
         # with open(new_folder_path + '\\stats.txt', 'a') as f:
         #     f.write(stats)
-
-        plt.scatter(data['size_bytes'] / 1000, data['is_spam'])
-        plt.xlabel('Email size (bytes)')
-        plt.yticks(ticks=[0,1], labels=['Not Spam', 'Spam'])
-        plt.ylabel('Spam classification')
-
-        plt.show()
