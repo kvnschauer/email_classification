@@ -1,9 +1,14 @@
+import pandas
 import psycopg2
+from pandas import DataFrame
 from psycopg2 import Error
 import pandas as pd
 
-class PostgresDbConnector:
 
+class PostgresDbConnector:
+    """
+        Class to handle connecting to local Postgres DB to manage email data
+    """
     __host = 'localhost'
     __database = 'localDB'
     __user = 'email_classifier'
@@ -15,10 +20,11 @@ class PostgresDbConnector:
     def __init__(self, config):
         self.__password = config['localPostgresPassword']
 
-    """
-        Creates and returns local postgresql DB connection
-    """
+
     def __connect(self):
+        """
+           Creates and returns local postgresql DB connection
+        """
         try:
             connection = psycopg2.connect(database=self.__database,
                                     user=self.__user,
@@ -29,18 +35,18 @@ class PostgresDbConnector:
         except Error as e:
             print(f'Error connecting to DB:  {e}')
 
-    """
-        Inserts or updates an email in the database
-        
-        parameters:
-            email_id - email id from source system
-            is_spam - spam classification
-            sender_address - sender email address
-            sender_name - sender name of the email
-            subject - subject of the email
-            source - source of the email (gmail or proton)
-    """
     def upsert_email(self, email_id: str, is_spam: bool, sender_address: str, sender_name: str, subject: str, source: str, size_bytes: int):
+        """
+            Inserts or updates an email in the database
+
+            Parameters:
+                email_id - email id from source system
+                is_spam - spam classification
+                sender_address - sender email address
+                sender_name - sender name of the email
+                subject - subject of the email
+                source - source of the email (gmail or proton)
+        """
         connection = self.__connect()
         cursor = connection.cursor()
 
@@ -56,16 +62,17 @@ class PostgresDbConnector:
             cursor.close()
             connection.close()
 
-    """
-        Get emails in batches of 100
-        
-        parameters:
-            idSearchAfter - database id to search after
-            
-        returns:
-            up to 100 emails from the db
-    """
-    def read_emails_bulk(self, id_search_after):
+
+    def read_emails(self, id_search_after):
+        """
+           Get emails in batches of 100
+
+           Parameters:
+               idSearchAfter - database id to search after
+
+           Returns:
+               up to 100 emails from the db
+        """
         connection = self.__connect()
         cursor = connection.cursor()
 
@@ -80,3 +87,20 @@ class PostgresDbConnector:
         finally:
             cursor.close()
             connection.close()
+
+    def read_emails_bulk(self):
+        """
+            Handles reading all emails into a dataframe in batches of 100
+
+            Returns:
+                Email data as a pandas dataframe
+        """
+        data: DataFrame = self.read_emails(1)
+        data_next: DataFrame = data
+        while len(data_next) > 0:
+            data_next = self.read_emails(int(data_next.id.max()))
+            if len(data_next) > 0:
+                data = pandas.concat([data, data_next])
+
+        data = data.reset_index()
+        return data

@@ -1,17 +1,18 @@
 from email_base import EmailBase
 from email_classification import EmailClassification
 from typing import List
-'''
-    Class to manage proton emails
-'''
+
 class ProtonEmail(EmailBase):
+    """
+        Class to manage proton emails
+    """
     label_ids: List[str]
     unread: bool
 
-    ''' 
-        Take in a dictionary from deserializing json and assigns data to the class
-    '''
     def __init__(self, deserialized_email: dict, file_name: str):
+        """
+            Take in a dictionary from deserializing json and assigns data to the class
+        """
         try:
             self.subject = deserialized_email['Payload']['Subject']
             self.email_id = deserialized_email['Payload']['ID']
@@ -23,10 +24,10 @@ class ProtonEmail(EmailBase):
         except:
             print(f'Problem loading file {file_name}')
 
-    '''
-        Gets the classification of this email as either spam, not spam or notset 
-    '''
     def set_classification(self):
+        """
+            Gets the classification of this email as either spam, not spam or notset
+        """
         classification = EmailClassification.UNKNOWN
         if not self.label_ids.__contains__(self.__get_sent_label_id()):
             if self.label_ids.__contains__(self.__get_spam_label_id()):
