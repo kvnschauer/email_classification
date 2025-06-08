@@ -4,7 +4,6 @@ from pandas import DataFrame
 from psycopg2 import Error
 import pandas as pd
 
-
 class PostgresDbConnector:
     """
         Class to handle connecting to local Postgres DB to manage email data
@@ -19,7 +18,6 @@ class PostgresDbConnector:
 
     def __init__(self, config):
         self.__password = config['localPostgresPassword']
-
 
     def __connect(self):
         """

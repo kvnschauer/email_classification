@@ -1,5 +1,4 @@
 from pandas import DataFrame
-
 from Data_Load.data_load import load_data_all
 from data_analyzer import Data_analyzer
 from postgres_db_client import PostgresDbConnector
@@ -16,7 +15,6 @@ analyzer = Data_analyzer()
 function_to_execute = 0
 user_input = ''
 data: DataFrame = db_connector.read_emails_bulk()
-
 available_functions = { 1: load_data_all, 2: lambda: analyzer.analyze_data_all(data)}
 
 while function_to_execute not in available_functions:
