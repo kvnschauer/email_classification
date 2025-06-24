@@ -1,3 +1,4 @@
+import json
 import os.path
 import re
 import email_base
@@ -112,10 +113,14 @@ class Gmail_api_client:
                 new_email.classification = key
 
                 # fetch and extract metadata
-                metadata = self.__get_email_metadata(message_id)
-                self.__process_metadata(metadata, new_email)
+                # if one fails then others can still continue
+                try:
+                    metadata = self.__get_email_metadata(message_id)
+                    self.__process_metadata(metadata, new_email)
 
-                emails.append(new_email)
+                    emails.append(new_email)
+                except Exception as e:
+                    print(f'Error processing message id {message_id} {e}')
 
         return emails
 
