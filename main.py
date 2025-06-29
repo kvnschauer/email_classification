@@ -17,7 +17,7 @@ function_to_execute = 0
 user_input = ''
 data: DataFrame = db_connector.read_emails_bulk()
 model_trainer: Model_Train = Model_Train()
-available_functions = { 1: load_data_all, 2: lambda: analyzer.analyze_data_all(data), 3: lambda: model_trainer.train_model(data) }
+available_functions = { 1: load_data_all, 2: lambda: analyzer.analyze_data_all(data.copy()), 3: lambda: model_trainer.train_model(data.copy()) }
 
 while function_to_execute not in available_functions:
     user_input = input('Choose an option: \n'
