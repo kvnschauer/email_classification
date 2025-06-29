@@ -1,17 +1,15 @@
+import json
 import os.path
 import re
-
 import email_base
+
 from email_base import EmailBase
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build, Resource
 from typing import List
-
-
 from email_classification import EmailClassification
-
 
 class Gmail_api_client:
     __scopes = ["https://www.googleapis.com/auth/gmail.readonly"]
@@ -54,8 +52,6 @@ class Gmail_api_client:
                 query (str):  custom query per gmail spec.
                 next_page_token (str): page token for fetching further results.
                 initial_call (bool): is this the first non-recursive call?
-            Returns:
-                  None
         """
         if not initial_call and next_page_token is None:
             return
@@ -117,10 +113,14 @@ class Gmail_api_client:
                 new_email.classification = key
 
                 # fetch and extract metadata
-                metadata = self.__get_email_metadata(message_id)
-                self.__process_metadata(metadata, new_email)
+                # if one fails then others can still continue
+                try:
+                    metadata = self.__get_email_metadata(message_id)
+                    self.__process_metadata(metadata, new_email)
 
-                emails.append(new_email)
+                    emails.append(new_email)
+                except Exception as e:
+                    print(f'Error processing message id {message_id} {e}')
 
         return emails
 
