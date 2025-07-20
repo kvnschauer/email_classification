@@ -1,0 +1,36 @@
+Dataset total: 1970
+
+Columns: Index(['index', 'id', 'email_id', 'is_spam', 'sender_address', 'sender_name',
+       'subject', 'create_datetime_utc', 'source', 'size_bytes'],
+      dtype='object')
+
+Percent non spam: 38.7
+
+Email source info:
+ source
+Gmail     1269
+Proton     700
+Name: count, dtype: int64
+
+Email size stats non spam (kilobyte):
+ count      761.000000
+mean       452.805022
+std       2415.091370
+min          0.301000
+25%          6.397000
+50%         21.816000
+75%         49.238000
+max      33526.522000
+Name: size_bytes, dtype: float64
+
+Email size stats spam (kilobyte):
+ count    1207.000000
+mean       60.960789
+std        73.527863
+min         0.677000
+25%        11.090000
+50%        45.580000
+75%        92.291000
+max      1792.957000
+Name: size_bytes, dtype: float64
+
