@@ -1,9 +1,10 @@
 import json
 
-from Data_Load.gmail_api_client import Gmail_api_client
+from Data_Load.gmail_api_client import GmailApiClient
 from os import listdir
 from typing import List
 from Data_Load.proton_email import ProtonEmail
+from Data_Load.proton_imap_client import ProtonImapClient
 from email_base import EmailBase
 from email_classification import EmailClassification
 from postgres_db_client import PostgresDbConnector
@@ -13,7 +14,7 @@ config_file_path = 'C:\\repos\\email_classification\\config.json'
 config = json.load(open(config_file_path))
 db_connector: PostgresDbConnector = PostgresDbConnector(config)
 
-def load_proton_email():
+def load_proton_emails_from_backup():
     """
         Script to load email data into postgres SQL locally
 
@@ -23,7 +24,7 @@ def load_proton_email():
         - label id JPbYQkCIbN3IOjoHlGGvMoOiojOoOBsvbpM2NyXpt8KJlzwId64o72Sy0nHD7MzYEGMV9PZKz2Z4vXF9COCBFQ== is not spam
         - label id qdbSPKYNNaPjSnyK64SYLOXRdwh9dJw9w912z4XV9mFvKSFqdy7Yt3_JYu4GgeLEcNLbNhH4XZzw-N6QZtbikg== is spam
     """
-    proton_emails_path = 'C:\\Users\\Kevin\\Documents\\Email backups\\Proton\\kvnschauer@protonmail.com\\mail_20250630_205423'
+    proton_emails_path = 'C:\\Users\\Kevin\\Documents\\Email backups\\Proton\\kvnschauer@protonmail.com\\mail_20250930_210020'
 
     proton_emails_metadata_files = \
     [
@@ -49,12 +50,13 @@ def load_proton_email():
 
 
 def load_gmail_emails(emails: List[EmailBase]):
-    client = Gmail_api_client()
-    gmail_emails = client.get_emails()
+    client = GmailApiClient()
+    gmail_emails = client.get_emails_all()
     emails += gmail_emails
 
 def load_data_all():
-    load_proton_email()
+    proton_imap_client = ProtonImapClient(config)
+    #proton_imap_client.read_emails_all(emails)
     load_gmail_emails(emails)
 
     # load emails to db
