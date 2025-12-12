@@ -60,7 +60,6 @@ class PostgresDbConnector:
             cursor.close()
             connection.close()
 
-
     def read_emails(self, id_search_after):
         """
            Get emails in batches of 100

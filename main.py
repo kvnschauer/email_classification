@@ -17,13 +17,17 @@ function_to_execute = 0
 user_input = ''
 data: DataFrame = db_connector.read_emails_bulk()
 model_trainer: Model = Model()
-available_functions = { 1: load_data_all, 2: lambda: analyzer.analyze_data_all(data.copy()), 3: lambda: model_trainer.train(data.copy()) }
+available_functions = { 1: load_data_all,
+                        2: lambda: analyzer.analyze_data_all(data.copy()),
+                        3: lambda: model_trainer.train(data.copy()),
+                        4: lambda: model_trainer.train_experiment(data.copy())}
 
 while function_to_execute not in available_functions:
     user_input = input('Choose an option: \n'
                         '1. load all email data\n'
                         '2. analyze data\n'
-                        '3. train and validate model\n')
+                        '3. train model and save model\n'
+                        '4. train and validate model for experimentation\n')
 
     try:
         function_to_execute = int(user_input)
@@ -33,7 +37,5 @@ while function_to_execute not in available_functions:
 
     if function_to_execute not in available_functions:
         print("Please choose a valid option.")
-
-
 
 available_functions[function_to_execute]()

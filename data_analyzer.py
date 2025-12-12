@@ -50,11 +50,9 @@ class Data_analyzer:
 
     def __build_subject_words_table(self, save_data, email_data, folder_path, is_spam):
         subject_words: List[str] = []
-        subject_data = email_data.loc[(~pd.isnull(email_data.subject))]
+        subject_data = email_data.loc[(~pd.isnull(email_data.subject)) & email_data.is_spam == is_spam]
         for index, email in subject_data.iterrows():
-            if email.is_spam and is_spam:
-                subject_words = subject_words + email.subject.split()
-            elif ~email.is_spam and ~is_spam:
+            if email.subject is not None:
                 subject_words = subject_words + email.subject.split()
 
 
@@ -106,7 +104,6 @@ class Data_analyzer:
         """
         # generate stats as txt and save if applicable
         save_data: bool = None
-        new_folder_path: str = ''
         while save_data == None:
             user_input = input('Do you want to save the data from analysis (y/n)?')
 
@@ -118,13 +115,12 @@ class Data_analyzer:
         stats = (f'Dataset total: {len(data)}\n\n'
                  f'Columns: {data.columns}\n\n'
                  f'Percent non spam: {percent_non_spam}\n\n'
-                 f'Email source info:\n {data.source.value_counts()}\n\n'
-                 f'Email size stats non spam (kilobyte):\n {(data.loc[data.is_spam == False].size_bytes / 1000).describe()}\n\n'
-                 f'Email size stats spam (kilobyte):\n {(data.loc[data.is_spam == True].size_bytes / 1000).describe()}\n\n')
+                 f'Email source info:\n {data.source.value_counts()}\n\n')
 
         print(stats)
-        with open(new_folder_path + '\\stats.txt', 'a') as f:
-            f.write(stats)
+        if save_data:
+            with open(new_folder_path + '\\stats.txt', 'a') as f:
+                f.write(stats)
 
         #take a look at most common words for spam and non spam emails
         self.__build_subject_words_table(save_data, data, new_folder_path, True)

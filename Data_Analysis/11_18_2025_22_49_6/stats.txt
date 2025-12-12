@@ -1,0 +1,14 @@
+Dataset total: 3401
+
+Columns: Index(['index', 'id', 'email_id', 'is_spam', 'sender_address', 'sender_name',
+       'subject', 'create_datetime_utc', 'source', 'size_bytes'],
+      dtype='object')
+
+Percent non spam: 37.6
+
+Email source info:
+ source
+Gmail     1725
+Proton    1676
+Name: count, dtype: int64
+

@@ -11,13 +11,12 @@ from googleapiclient.discovery import build, Resource
 from typing import List
 from email_classification import EmailClassification
 
-class Gmail_api_client:
+class GmailApiClient:
     __scopes = ["https://www.googleapis.com/auth/gmail.readonly"]
     __creds = None
     __not_spam_label_id = 'Label_7181974657700970591'
     __spam_label_id = 'Label_2209700380525172462'
     __personal_label_id = 'CATEGORY_PERSONAL'
-    __message_ids = {EmailClassification.SPAM:[], EmailClassification.NOT_SPAM: [], EmailClassification.UNKNOWN: []}
     __service: Resource
     __token_file_path = 'C:\\repos\\email_classification\\token.json'
 
@@ -86,7 +85,35 @@ class Gmail_api_client:
 
         return email_metadata
 
-    def get_emails(self):
+    def get_emails_by_label(self, label, classification, query: str = ''):
+        emails: List[email_base] = []
+        message_ids = []
+
+        if query and len(query) > 0:
+            self.list_emails([label], message_ids, initial_call=True, query= query)
+        else:
+            self.list_emails([label], message_ids, initial_call=True)
+
+        for i, message_id in enumerate(message_ids):
+            print(f"Fetching email metadata {i} / {len(message_ids)}")
+            new_email = EmailBase()
+            new_email.email_id = message_id
+            new_email.email_source = 'Gmail'
+            new_email.classification = classification
+
+            # fetch and extract metadata
+            # if one fails then others can still continue
+            try:
+                metadata = self.__get_email_metadata(message_id)
+                self.__process_metadata(metadata, new_email)
+
+                emails.append(new_email)
+            except Exception as e:
+                print(f'Error processing message id {message_id} {e}')
+
+        return emails
+
+    def get_emails_all(self):
         """
             Function to get gmail email data
 
@@ -94,33 +121,14 @@ class Gmail_api_client:
         """
         emails: List[email_base] = []
 
-        # get list of email ids
         print('Fetching spam gmail email ids...')
-        self.list_emails([self.__spam_label_id], self.__message_ids[EmailClassification.SPAM], initial_call=True)
+        emails = emails + self.get_emails_by_label(self.__spam_label_id, EmailClassification.SPAM)
+
         print('Fetching non spam gmail email ids...')
-        self.list_emails([self.__not_spam_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True)
+        emails = emails + self.get_emails_by_label(self.__not_spam_label_id, EmailClassification.NOT_SPAM)
+
         print('Fetching unread gmail email ids...')
-        self.list_emails([self.__personal_label_id], self.__message_ids[EmailClassification.NOT_SPAM], initial_call= True, query='-is:unread')
-
-        # read email metadata and map
-        for key in self.__message_ids.keys():
-            print(f'Fetching metadata for {key} email classification')
-            for i, message_id in enumerate(self.__message_ids[key]):
-                print(f"Fetching email metadata {i} / {len(self.__message_ids[key])}")
-                new_email = EmailBase()
-                new_email.email_id = message_id
-                new_email.email_source = 'Gmail'
-                new_email.classification = key
-
-                # fetch and extract metadata
-                # if one fails then others can still continue
-                try:
-                    metadata = self.__get_email_metadata(message_id)
-                    self.__process_metadata(metadata, new_email)
-
-                    emails.append(new_email)
-                except Exception as e:
-                    print(f'Error processing message id {message_id} {e}')
+        emails = emails + self.get_emails_by_label(self.__personal_label_id, EmailClassification.NOT_SPAM, '-is:unread')
 
         return emails
 

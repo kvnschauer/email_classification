@@ -1,0 +1,1 @@
+Best grid search params:{'classifier__C': 8.0, 'classifier__penalty': 'l2', 'classifier__solver': 'saga'}

@@ -1,4 +1,4 @@
-
+import joblib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,15 +10,16 @@ from pandas.core.interchange.dataframe_protocol import DataFrame
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction._stop_words import ENGLISH_STOP_WORDS
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split, cross_val_predict, cross_val_score, learning_curve
+from sklearn.metrics import confusion_matrix, precision_recall_curve
+from sklearn.model_selection import train_test_split, cross_val_predict, cross_val_score, learning_curve, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 import re
 
 # two models to test out
 from sklearn.svm import LinearSVC
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
+
 
 class Model:
     __analysis_backup_path = 'C:\\repos\\email_classification\\Training_Analysis'
@@ -76,9 +77,23 @@ class Model:
         plt.xlabel('Training Size')
         plt.ylabel('Accuracy')
         plt.legend()
+        plt.grid()
 
         if save_data:
             plt.savefig(folder_path + '\\learning_curve.png', dpi=300, bbox_inches='tight', format='png')
+            plt.close()
+        else:
+            plt.show()
+
+    def __build_precision_recall_graph(self, save_data, folder_path, precisions, recalls, thresholds):
+        plt.plot(thresholds, precisions[:-1], "b--", label="Precision", linewidth=2)
+        plt.plot(thresholds, recalls[:-1], "g-", label="Recall", linewidth=2)
+
+        plt.grid()
+        plt.legend()
+
+        if save_data:
+            plt.savefig(folder_path + '\\precision_recall.png', dpi=300, bbox_inches='tight', format='png')
             plt.close()
         else:
             plt.show()
@@ -102,6 +117,36 @@ class Model:
     def train(self, all_data: DataFrame):
         """
              Handles training the model
+        """
+        # clean and transform data for training
+        # select rows where subject and sender are present
+        def __reg_replace(regex_str, initial_str):
+            reg_search_result = re.search(regex_str, initial_str)
+            return '' if not reg_search_result else reg_search_result.group(0)
+
+        all_data = all_data.loc[(~pd.isnull(all_data.subject)) & (~pd.isnull(all_data.sender_address))]
+        # break up sender local and domain into different features
+        all_data['sender_local'] = all_data.sender_address.map(lambda x: __reg_replace('.*(?=@)', x))
+        all_data['sender_domain'] = all_data.sender_address.map(lambda x: __reg_replace('(?<=@).*', x))
+
+        logistic_regressor = LogisticRegression(max_iter=1000, C=8.0, penalty='l2', solver='saga')
+
+        model_pipeline = Pipeline([
+            ('preprocessing', self.__get_pre_process_transformer()),
+            ('classifier', logistic_regressor)
+        ])
+
+        # Input features and target
+        X = all_data[['sender_local', 'sender_domain', 'subject']]
+        y = all_data['is_spam']
+
+        model_pipeline.fit(X, y)
+
+        joblib.dump(logistic_regressor, 'model.joblib')
+
+    def train_experiment(self, all_data: DataFrame):
+        """
+             Trains a model for finetuning of experimentation
         """
         # clean and transform data for training
         # select rows where subject and sender are present
@@ -133,28 +178,45 @@ class Model:
 
         svc_pipeline = Pipeline([
             ('preprocessing', self.__get_pre_process_transformer()),
-            ('classifier', LinearSVC())
+            ('classifier', LogisticRegression(max_iter=1000))
         ])
+
+        param_grid = [
+            { 'classifier__penalty': ['l1'], 'classifier__C': [0.1, 1.0, 5.0, 8.0, 12.0], 'classifier__solver': ['liblinear', 'saga']},
+            {'classifier__penalty': ['l2'], 'classifier__C': [0.1, 1.0, 5.0, 8.0, 12.0], 'classifier__solver': ['lbfgs', 'liblinear', 'saga']},
+        ]
 
         # Input features and target
         X = train_set[['sender_local', 'sender_domain', 'subject']]
         y = train_set['is_spam']
 
-        train_sizes, train_scores, test_scores = learning_curve(
-            svc_pipeline, X, y, cv=5, scoring='accuracy', train_sizes=np.linspace(0.1, 1.0, 20)
+        grid_search = GridSearchCV(
+            svc_pipeline,
+            param_grid,
+            scoring='accuracy',
+            cv=5
         )
 
-        # Compute mean scores
+        grid_search.fit(X,y)
+
+        train_sizes, train_scores, test_scores = learning_curve(
+            grid_search.best_estimator_, X, y, cv=5, scoring='accuracy', train_sizes=np.linspace(0.1, 1.0, 20)
+        )
+
+        scores = grid_search.best_estimator_.decision_function(X)
+        #scores = cross_val_score(grid_search.best_estimator_, X, y, cv=5, method='decision_function')
+
+        precisions, recalls, thresholds = precision_recall_curve(y, scores)
+
+
         train_mean = np.mean(train_scores, axis=1)
         test_mean = np.mean(test_scores, axis=1)
 
-        # Plot learning curves
         self.__build_learning_curve_graph(save_data, new_folder_path, train_sizes, train_mean, test_mean)
+        self.__build_precision_recall_graph(save_data, new_folder_path, precisions, recalls, thresholds)
 
-        # svc_scores = cross_val_score(svc_pipeline, X, y, cv=3, scoring='accuracy', verbose=2)
-        # print(svc_scores)
-
-        #y_predict = cross_val_predict(svc_pipeline, X, y, cv=3)
-        #cf = confusion_matrix(y, y_predict, labels=[0, 1])
-        #print(cf)
-        #svc_pipeline.fit(X, y)
+        stats = f'Best grid search params:{grid_search.best_params_}'
+        print(stats)
+        if save_data:
+            with open(new_folder_path + '\\stats.txt', 'a') as f:
+                f.write(stats)

@@ -45,12 +45,14 @@ Sender "kaggle-noreply@google.com".
 - Both models overfit initially
   - May need more training data and some regularization
   - ~8% gap between training predictions and validation predictions 
+- LogisticRegressor supports l1 and l2 penalties
+  - l1 only works with saga and liblinear solvers
+  - l2 works with all solvers
+- LogisticRegressor provides probabilistic output, whereas LinearSVC does not
 ### TODO
 - Regularize model to prevent overfitting (see training analysis graph)
 - Adjust for higher precision
 - Gather more post training analysis data
     - F1 score, precision, recall
-- Hook up to proton bridge to read email data
-  - Utilize imaplib package
 - Use proton bridge/IMAP protocol to classify new incoming emails and move to folder
   
