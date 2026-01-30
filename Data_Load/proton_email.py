@@ -12,6 +12,7 @@ class ProtonEmail(EmailBase):
     label_ids: List[str]
     unread: bool
     email_folder: str = ""
+    uid: str = ""
 
     def __init__(self, email_message: email.message.Message):
         self.subject = email_message['Subject']

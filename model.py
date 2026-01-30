@@ -1,3 +1,5 @@
+import traceback
+
 import joblib
 import numpy as np
 import pandas as pd
@@ -21,13 +23,27 @@ from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
 
+def remove_stop_words(words: List[str]):
+    english_stop_copy = ENGLISH_STOP_WORDS.copy().union(['-'])
+    return [word for word in words if word not in english_stop_copy]
+
+# Converts DataFrame column to Series
+def get_text_data(X):
+    return X.squeeze(axis=1).astype(str)
+
+def to_lower(df: DataFrame, col_name):
+    df_copy = df.copy()
+    df_copy[col_name] = df_copy[col_name].str.lower()
+    return df_copy
+
+def subject_remove_stop_words(df: DataFrame, col_name):
+    df_copy = df.copy()
+    return np.array([' '.join(word for word in remove_stop_words(x.split()))
+                     for x in df_copy[col_name]]).reshape(-1, 1)
+
 class Model:
     __analysis_backup_path = 'C:\\repos\\email_classification\\Training_Analysis'
-
-    @staticmethod
-    def remove_stop_words(words: List[str]):
-        english_stop_copy = ENGLISH_STOP_WORDS.copy().union(['-'])
-        return [word for word in words if word not in english_stop_copy]
+    __model_name = "model.joblib"
 
     @staticmethod
     def __get_pre_process_transformer():
@@ -40,35 +56,22 @@ class Model:
            Returns:
                A ColumnTransformer used to pre-process data prior to training
         """
-        # Converts DataFrame column to Series
-        def get_text_data(X):
-            return X.squeeze()
-
-        def to_lower(df: DataFrame, col_name):
-            df_copy = df.copy()
-            df_copy[col_name] = df_copy[col_name].str.lower()
-            return df_copy
-
-        def subject_remove_stop_words(df: DataFrame, col_name):
-            df_copy = df.copy()
-            return np.array([ ' '.join(word for word in Model.remove_stop_words(x.split()))
-                     for x in df_copy[col_name] ]).reshape(-1, 1)
 
         return ColumnTransformer(transformers=[
             ('sender_local', Pipeline([
                 ('lower_case', FunctionTransformer(func=to_lower, kw_args={'col_name': 'sender_local'})),
                 ('hot_encoder', OneHotEncoder(sparse_output=True, handle_unknown='ignore'))
-        ]), ['sender_local']),
+            ]), ['sender_local']),
             ('sender_domain', Pipeline([
                 ('lower_case', FunctionTransformer(func=to_lower, kw_args={'col_name': 'sender_domain'})),
                 ('hot_encoder', OneHotEncoder(sparse_output=True, handle_unknown='ignore'))
-        ]), ['sender_domain']),
+            ]), ['sender_domain']),
             ('subject', Pipeline([
-                    ('lower_case', FunctionTransformer(func=to_lower, kw_args={'col_name': 'subject'})),
-                    ('stop_words', FunctionTransformer(func=subject_remove_stop_words, kw_args={'col_name': 'subject'})),
-                    ('to_series', FunctionTransformer(get_text_data)),
-                    ('tfidf', TfidfVectorizer(max_features=5000))
-                ]), ['subject'])
+                ('lower_case', FunctionTransformer(func=to_lower, kw_args={'col_name': 'subject'})),
+                ('stop_words', FunctionTransformer(func=subject_remove_stop_words, kw_args={'col_name': 'subject'})),
+                ('to_series', FunctionTransformer(get_text_data)),
+                ('tfidf', TfidfVectorizer(max_features=5000))
+            ]), ['subject'])
         ])
 
     def __build_learning_curve_graph(self, save_data, folder_path, train_sizes, train_mean, test_mean):
@@ -114,20 +117,43 @@ class Model:
 
         return new_folder_path
 
+    @staticmethod
+    def __reg_replace(regex_str, initial_str):
+        reg_search_result = re.search(regex_str, initial_str)
+        return '' if not reg_search_result else reg_search_result.group(0)
+
+    def get_email_local(self, email_address):
+        return self.__reg_replace('.*(?=@)', email_address)
+
+    def get_email_domain(self, email_address):
+        return self.__reg_replace('(?<=@).*', email_address)
+
+    def classify_new_mail(self, email_data):
+        """
+            Classify unseen emails with trained model
+
+            parameters:
+                emails to classify
+            returns:
+                classified emails
+        """
+        X = email_data[['sender_local', 'sender_domain', 'subject']]
+        model_pipeline = joblib.load(self.__model_name)
+        predictions = model_pipeline.predict(X)
+
+        return predictions
+
     def train(self, all_data: DataFrame):
         """
              Handles training the model
         """
         # clean and transform data for training
         # select rows where subject and sender are present
-        def __reg_replace(regex_str, initial_str):
-            reg_search_result = re.search(regex_str, initial_str)
-            return '' if not reg_search_result else reg_search_result.group(0)
 
         all_data = all_data.loc[(~pd.isnull(all_data.subject)) & (~pd.isnull(all_data.sender_address))]
         # break up sender local and domain into different features
-        all_data['sender_local'] = all_data.sender_address.map(lambda x: __reg_replace('.*(?=@)', x))
-        all_data['sender_domain'] = all_data.sender_address.map(lambda x: __reg_replace('(?<=@).*', x))
+        all_data['sender_local'] = all_data.sender_address.map(lambda x: self.get_email_local(x))
+        all_data['sender_domain'] = all_data.sender_address.map(lambda x: self.get_email_domain(x))
 
         logistic_regressor = LogisticRegression(max_iter=1000, C=8.0, penalty='l2', solver='saga')
 
@@ -142,7 +168,7 @@ class Model:
 
         model_pipeline.fit(X, y)
 
-        joblib.dump(logistic_regressor, 'model.joblib')
+        joblib.dump(model_pipeline, self.__model_name)
 
     def train_experiment(self, all_data: DataFrame):
         """
@@ -150,10 +176,6 @@ class Model:
         """
         # clean and transform data for training
         # select rows where subject and sender are present
-        def __reg_replace(regex_str, initial_str):
-            reg_search_result = re.search(regex_str, initial_str)
-            return '' if not reg_search_result else reg_search_result.group(0)
-
         save_data = None
         while save_data == None:
             user_input = input('Do you want to save the data from analysis (y/n)?')
@@ -165,8 +187,8 @@ class Model:
 
         all_data = all_data.loc[(~pd.isnull(all_data.subject)) & (~pd.isnull(all_data.sender_address))]
         # break up sender local and domain into different features
-        all_data['sender_local'] = all_data.sender_address.map(lambda x: __reg_replace('.*(?=@)', x))
-        all_data['sender_domain'] = all_data.sender_address.map(lambda x: __reg_replace('(?<=@).*', x))
+        all_data['sender_local'] = all_data.sender_address.map(lambda x: self.get_email_local(x))
+        all_data['sender_domain'] = all_data.sender_address.map(lambda x: self.get_email_domain(x))
 
         # break up data into trn, test and validation sets
         train_set, test_set = train_test_split(all_data, test_size=.2, stratify=all_data['is_spam'], random_state=22)
@@ -207,7 +229,6 @@ class Model:
         #scores = cross_val_score(grid_search.best_estimator_, X, y, cv=5, method='decision_function')
 
         precisions, recalls, thresholds = precision_recall_curve(y, scores)
-
 
         train_mean = np.mean(train_scores, axis=1)
         test_mean = np.mean(test_scores, axis=1)
