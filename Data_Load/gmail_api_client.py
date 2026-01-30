@@ -12,34 +12,54 @@ from typing import List
 from email_classification import EmailClassification
 
 class GmailApiClient:
-    __scopes = ["https://www.googleapis.com/auth/gmail.readonly"]
+    __scopes = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify"]
     __creds = None
     __not_spam_label_id = 'Label_7181974657700970591'
     __spam_label_id = 'Label_2209700380525172462'
     __personal_label_id = 'CATEGORY_PERSONAL'
     __service: Resource
     __token_file_path = 'C:\\repos\\email_classification\\token.json'
+    model_identified_spam_label = 'Label_7059055847257710979'
+    inbox_label_id = 'INBOX'
 
     def __init__(self):
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
         if os.path.exists(self.__token_file_path):
-            self.creds = Credentials.from_authorized_user_file(self.__token_file_path, self.__scopes)
+            self.__creds = Credentials.from_authorized_user_file(self.__token_file_path, self.__scopes)
         # If there are no (valid) credentials available, let the user log in.
-        if not self.creds or not self.creds.valid:
-            if self.creds and self.creds.expired and self.creds.refresh_token:
-                self.creds.refresh(Request())
+        if not self.__creds or not self.__creds.valid:
+            if self.__creds and self.__creds.expired and self.__creds.refresh_token:
+                self.__creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "C:\\repos\\email_classification\\credentials.json", self.__scopes
                 )
-                self.creds = flow.run_local_server(port=0)
+                self.__creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open(self.__token_file_path, "w") as token:
-                token.write(self.creds.to_json())
+                token.write(self.__creds.to_json())
 
-        self.__service = build('gmail', 'v1', credentials=self.creds)
+        self.__service = build('gmail', 'v1', credentials=self.__creds)
+
+
+    def move_email(self, remove_label, add_label, email_id):
+        """
+            Move an email from one label to another
+
+            Parameters:
+                remove_label (str): label to move email from
+                add_label (str): label to move email to
+        """
+        body = {
+            'addLabelIds': [add_label],
+            'removeLabelIds': [remove_label]
+        }
+
+        self.__service.users().messages().modify(body=body,
+                                                          id=email_id,
+                                                          userId='me').execute()
 
     def list_emails(self, label_ids, message_ids, query=None, next_page_token=None, initial_call=False):
         """
@@ -61,6 +81,8 @@ class GmailApiClient:
                                                   maxResults=50,
                                                   pageToken=next_page_token,
                                                   q=query).execute()
+        if results['resultSizeEstimate'] == 0:
+            return
 
         for message in results['messages']:
             message_ids.append(message['id'])
@@ -86,7 +108,7 @@ class GmailApiClient:
         return email_metadata
 
     def get_emails_by_label(self, label, classification, query: str = ''):
-        emails: List[email_base] = []
+        emails: List[EmailBase] = []
         message_ids = []
 
         if query and len(query) > 0:
@@ -127,8 +149,8 @@ class GmailApiClient:
         print('Fetching non spam gmail email ids...')
         emails = emails + self.get_emails_by_label(self.__not_spam_label_id, EmailClassification.NOT_SPAM)
 
-        print('Fetching unread gmail email ids...')
-        emails = emails + self.get_emails_by_label(self.__personal_label_id, EmailClassification.NOT_SPAM, '-is:unread')
+        print('Fetching read gmail email ids...')
+        emails = emails + self.get_emails_by_label(self.inbox_label_id, EmailClassification.NOT_SPAM, '-is:unread')
 
         return emails
 

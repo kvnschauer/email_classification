@@ -5,6 +5,8 @@ from model import Model
 from postgres_db_client import PostgresDbConnector
 import json
 
+from spam_collector import SpamCollector
+
 # initialize variables
 db_connector: PostgresDbConnector
 config_file_path = 'C:\\repos\\email_classification\\config.json'
@@ -17,17 +19,20 @@ function_to_execute = 0
 user_input = ''
 data: DataFrame = db_connector.read_emails_bulk()
 model_trainer: Model = Model()
+spam_collector = SpamCollector()
 available_functions = { 1: load_data_all,
                         2: lambda: analyzer.analyze_data_all(data.copy()),
                         3: lambda: model_trainer.train(data.copy()),
-                        4: lambda: model_trainer.train_experiment(data.copy())}
+                        4: lambda: model_trainer.train_experiment(data.copy()),
+                        5: spam_collector.classify_and_process_emails}
 
 while function_to_execute not in available_functions:
     user_input = input('Choose an option: \n'
                         '1. load all email data\n'
                         '2. analyze data\n'
                         '3. train model and save model\n'
-                        '4. train and validate model for experimentation\n')
+                        '4. train and validate model for experimentation\n'
+                        '5. classify and process emails\n')
 
     try:
         function_to_execute = int(user_input)

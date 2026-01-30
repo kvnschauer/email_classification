@@ -56,7 +56,7 @@ def load_gmail_emails(emails: List[EmailBase]):
 
 def load_data_all():
     proton_imap_client = ProtonImapClient(config)
-    #proton_imap_client.read_emails_all(emails)
+    proton_imap_client.read_emails_all(emails)
     load_gmail_emails(emails)
 
     # load emails to db
